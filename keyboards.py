@@ -1,4 +1,5 @@
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+import config
 
 def main_menu():
     return InlineKeyboardMarkup([
@@ -17,5 +18,5 @@ def ad_button(ad_type):
 
 def wheel_webapp():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🎡 أدر العجلة الآن", web_app= {"url": config.WEBAPP_URL})]
+        [InlineKeyboardButton("🎡 أدر العجلة الآن", web_app={"url": config.WEBAPP_URL})]
     ])
