@@ -1,9 +1,9 @@
-from supabase import create_client, Client
+from supabase import create_client
 import config
 from datetime import datetime, timedelta
 
-# إنشاء العميل (يعمل مع الإصدار 2.x)
-supabase: Client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+# إنشاء العميل بشكل صحيح (مع URL والمفتاح)
+supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 def get_user(user_id):
     res = supabase.table("users").select("*").eq("id", user_id).execute()
