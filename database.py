@@ -1,8 +1,11 @@
-from supabase import create_client
+from supabase import create_client, Client
 import config
 from datetime import datetime, timedelta
+import httpx
 
-supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
+# إنشاء عميل HTTP مخصص لتجنب مشكلة proxy
+http_client = httpx.Client()
+supabase: Client = create_client(config.SUPABASE_URL, config.SUPABASE_KEY, options={"http_client": http_client})
 
 def get_user(user_id):
     res = supabase.table("users").select("*").eq("id", user_id).execute()
@@ -17,7 +20,6 @@ def create_user(user_id, username, first_name, referrer_id=None):
         "created_at": datetime.utcnow().isoformat()
     }
     supabase.table("users").insert(data).execute()
-    # تحديث عدد الإحالات للمُحيل
     if referrer_id:
         supabase.table("users").update({"referral_count": supabase.rpc("increment", {"x": 1})}).eq("id", referrer_id).execute()
     return get_user(user_id)
@@ -28,26 +30,21 @@ def start_tap_session(user_id):
     return res.data[0]["id"]
 
 def increment_tap_count(session_id):
-    # تستدعي الدالة التي أنشأناها في Supabase
     res = supabase.rpc("increment_tap", {"session_id": session_id}).execute()
     return res
 
 def finish_tap_session(session_id, user_id):
-    # جلب عدد الضغطات وإنهاء الجلسة
     res = supabase.table("tap_sessions").select("tap_count").eq("id", session_id).execute()
     tap_count = res.data[0]["tap_count"]
     tokens = (tap_count // 1000) * 10
 
-    # تخفيض المكافأة إذا كان المستخدمون > 10000
     total_users = get_total_users()
     if total_users >= 10000:
         tokens = tokens * 0.5
 
-    # تحديث الرصيد
     if tokens > 0:
         supabase.rpc("increment_balance", {"uid": user_id, "amount": tokens}).execute()
 
-    # تحديث حالة الجلسة
     supabase.table("tap_sessions").update({
         "end_time": datetime.utcnow().isoformat(),
         "tokens_earned": tokens,
@@ -64,7 +61,6 @@ def claim_daily(user_id):
     if last == today.isoformat():
         return None, "لقد حصلت عليها اليوم بالفعل!"
     
-    # حساب التسلسل
     if last and datetime.fromisoformat(last).date() == today - timedelta(days=1):
         streak = user.get("daily_streak", 0) + 1
     else:
@@ -77,12 +73,10 @@ def claim_daily(user_id):
     elif streak == 30:
         reward_usdt = 5
 
-    # تخفيض 50% عند 10000 مستخدم
     total_users = get_total_users()
     if total_users >= 10000:
         reward_rvt = reward_rvt * 0.5
 
-    # تحديث قاعدة البيانات
     supabase.table("users").update({
         "daily_streak": streak,
         "last_daily_claim": today.isoformat()
@@ -93,7 +87,6 @@ def claim_daily(user_id):
     if reward_usdt > 0:
         supabase.rpc("increment_usdt", {"uid": user_id, "amount": reward_usdt}).execute()
     
-    # تسجيل في daily_rewards
     supabase.table("daily_rewards").insert({
         "user_id": user_id,
         "claim_date": today.isoformat(),
@@ -116,18 +109,15 @@ def spin_wheel(user_id):
     ]
     prize = random.choice(prizes)
     
-    # تخفيض 50% عند 10000 مستخدم
     total_users = get_total_users()
     if total_users >= 10000:
         prize["value"] = prize["value"] * 0.5
     
-    # تحديث الرصيد
     if prize["type"] == "RVT" and prize["value"] > 0:
         supabase.rpc("increment_balance", {"uid": user_id, "amount": prize["value"]}).execute()
     elif prize["type"] == "USDT" and prize["value"] > 0:
         supabase.rpc("increment_usdt", {"uid": user_id, "amount": prize["value"]}).execute()
     
-    # تسجيل الدوران
     supabase.table("wheel_spins").insert({
         "user_id": user_id,
         "prize_type": prize["type"],
@@ -138,7 +128,6 @@ def spin_wheel(user_id):
 
 def watch_ad(user_id, ad_type):
     today = datetime.utcnow().date()
-    # حساب عدد الإعلانات اليوم
     count_res = supabase.table("ad_views").select("id", count="exact") \
         .eq("user_id", user_id) \
         .gte("view_time", today.isoformat()) \
@@ -150,7 +139,7 @@ def watch_ad(user_id, ad_type):
     reward = 10.0
     total_users = get_total_users()
     if total_users >= 10000:
-        reward = 5.0  # 50%
+        reward = 5.0
     
     supabase.rpc("increment_balance", {"uid": user_id, "amount": reward}).execute()
     supabase.table("ad_views").insert({
