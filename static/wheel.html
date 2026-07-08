@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>عجلة Revolution</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <style>
+        body { background: #1a1a2e; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; font-family: Arial; }
+        canvas { border-radius: 50%; box-shadow: 0 0 20px #e94560; }
+        button { margin-top: 20px; padding: 15px 40px; font-size: 20px; background: #e94560; color: white; border: none; border-radius: 30px; cursor: pointer; }
+    </style>
+</head>
+<body>
+<div style="text-align:center;">
+    <canvas id="wheelCanvas" width="400" height="400"></canvas>
+    <br>
+    <button onclick="spin()">🎡 أدر العجلة</button>
+</div>
+<script>
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    const segments = [
+        { label: '1 USDT', color: '#f94144' },
+        { label: '100 RVT', color: '#f3722c' },
+        { label: '0.5 USDT', color: '#f8961e' },
+        { label: '50 RVT', color: '#f9c74f' },
+        { label: '0', color: '#90be6d' },
+        { label: '1 USDT', color: '#43aa8b' },
+        { label: '10 RVT', color: '#577590' }
+    ];
+    let currentAngle = 0;
+
+    function drawWheel(angle) {
+        const arc = (2 * Math.PI) / segments.length;
+        ctx.clearRect(0, 0, 400, 400);
+        for (let i = 0; i < segments.length; i++) {
+            const startAngle = angle + i * arc;
+            const endAngle = startAngle + arc;
+            ctx.beginPath();
+            ctx.moveTo(200, 200);
+            ctx.arc(200, 200, 180, startAngle, endAngle);
+            ctx.closePath();
+            ctx.fillStyle = segments[i].color;
+            ctx.fill();
+            ctx.strokeStyle = '#fff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            // رسم النص
+            ctx.save();
+            ctx.translate(200, 200);
+            ctx.rotate(startAngle + arc / 2);
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 14px Arial';
+            ctx.fillText(segments[i].label, 120, 5);
+            ctx.restore();
+        }
+        // السهم العلوي
+        ctx.fillStyle = '#fff';
+        ctx.beginPath();
+        ctx.moveTo(200, 10);
+        ctx.lineTo(190, 30);
+        ctx.lineTo(210, 30);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    function spin() {
+        let spinAngle = Math.random() * 10 + 5; // عدد لفات عشوائي
+        const targetIndex = Math.floor(Math.random() * segments.length);
+        const arc = (2 * Math.PI) / segments.length;
+        const targetAngle = (targetIndex * arc) + arc / 2;
+        const finalAngle = currentAngle + spinAngle * 2 * Math.PI + (2 * Math.PI - targetAngle);
+        
+        let start = null;
+        const duration = 4000;
+        const startAngle = currentAngle;
+
+        function animate(timestamp) {
+            if (!start) start = timestamp;
+            const progress = Math.min((timestamp - start) / duration, 1);
+            const ease = 1 - Math.pow(1 - progress, 3);
+            currentAngle = startAngle + (finalAngle - startAngle) * ease;
+            drawWheel(currentAngle);
+            if (progress < 1) {
+                requestAnimationFrame(animate);
+            } else {
+                currentAngle = finalAngle;
+                drawWheel(currentAngle);
+                // إرسال النتيجة إلى البوت
+                const prize = segments[targetIndex].label;
+                Telegram.WebApp.sendData(JSON.stringify({ prize: prize }));
+            }
+        }
+        requestAnimationFrame(animate);
+    }
+
+    drawWheel(0);
+    Telegram.WebApp.ready();
+</script>
+</body>
+</html>
