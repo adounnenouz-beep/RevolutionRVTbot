@@ -3,7 +3,7 @@ import config
 from datetime import datetime, timedelta
 import httpx
 
-# إنشاء عميل HTTP مخصص لتجنب مشكلة proxy
+# إنشاء عميل HTTP مخصص لتجاوز مشكلة proxy
 http_client = httpx.Client()
 supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY, options={"http_client": http_client})
 
