@@ -2,7 +2,7 @@ from supabase import create_client
 import config
 from datetime import datetime, timedelta
 
-# إنشاء العميل بالطريقة العادية (بدون أي تعديلات)
+# إنشاء العميل بالطريقة العادية
 supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 def get_user(user_id):
