@@ -1,4 +1,4 @@
-python-telegram-bot[job-queue]==20.6
+python-telegram-bot[job-queue]==23
 supabase~=1.0.0
 python-dotenv==1.0.0
 apscheduler>=3.10.4
