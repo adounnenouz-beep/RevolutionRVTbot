@@ -1,11 +1,9 @@
 from supabase import create_client
 import config
 from datetime import datetime, timedelta
-import httpx
 
-# إنشاء عميل HTTP مخصص لتجاوز مشكلة proxy
-http_client = httpx.Client()
-supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY, options={"http_client": http_client})
+# إنشاء العميل بالطريقة العادية (بدون أي تعديلات)
+supabase = create_client(config.SUPABASE_URL, config.SUPABASE_KEY)
 
 def get_user(user_id):
     res = supabase.table("users").select("*").eq("id", user_id).execute()
